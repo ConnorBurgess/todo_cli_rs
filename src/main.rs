@@ -24,6 +24,7 @@ enum Commands {
     Add {
         description: String,
     },
+    List,
 }
 
 fn main() -> Result<(), TaskError> {
@@ -33,7 +34,11 @@ fn main() -> Result<(), TaskError> {
         Commands::Add { description } => {
             println!("Added a new task: {}", description);
             add_task(description)?;
-        }
+        },
+        Commands::List => {
+            list_tasks()?;
+        },
+
     }
 
     Ok(())
@@ -44,6 +49,16 @@ fn add_task(description: String) -> Result<(), TaskError> {
     tasks.push(Task::new(description));
     save_tasks("tasks.json", &tasks)
 }
+fn list_tasks() -> Result<(), TaskError> {
+    let tasks = load_tasks("tasks.json")?;
+
+    for (index, task) in tasks.iter().enumerate() {
+        println!("{}: {}", index + 1, task.description);
+    }
+
+    Ok(())
+}
+
 
 fn load_tasks(filename: &str) -> Result<Vec<Task>, TaskError> {
     let mut file = File::open(filename).map_err(TaskError::Io)?;
