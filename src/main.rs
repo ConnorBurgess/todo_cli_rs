@@ -6,6 +6,9 @@ use serde_json::{self, Value};
 use serde::{Deserialize, Serialize};
 
 mod tasks;
+mod error;
+
+use error::TaskError;
 use tasks::Task;
 
 #[derive(Parser, Debug)]
@@ -23,43 +26,37 @@ enum Commands {
     },
 }
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), TaskError> {
     let cli = Cli::parse();
 
     match cli.command {
         Commands::Add { description } => {
-                add_task(description)?;
-            println!("Added a new task");
+            println!("Added a new task: {}", description);
+            add_task(description)?;
         }
     }
 
     Ok(())
 }
 
-fn add_task(description: String) -> io::Result<()> {
+fn add_task(description: String) -> Result<(), TaskError> {
     let mut tasks = load_tasks("tasks.json")?;
     tasks.push(Task::new(description));
     save_tasks("tasks.json", &tasks)
 }
 
-fn load_tasks(filename: &str) -> std::io::Result<Vec<Task>> {
-    let file = File::open(filename);
+fn load_tasks(filename: &str) -> Result<Vec<Task>, TaskError> {
+    let mut file = File::open(filename).map_err(TaskError::Io)?;
 
-    match file {
-        Ok(mut file) => {
-            let mut contents = String::new();
-            file.read_to_string(&mut contents)?;
-            serde_json::from_str(&contents).map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))
-        },
-        Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
-            Ok(Vec::new())
-        },
-        Err(e) => Err(e),
-    }
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).map_err(TaskError::Io)?;
+    let tasks = serde_json::from_str(&contents).map_err(TaskError::Json)?;
+
+    Ok(tasks)
 }
 
 
-fn save_tasks(filename: &str, tasks: &[Task]) -> io::Result<()> {
+fn save_tasks(filename: &str, tasks: &[Task]) -> Result<(), TaskError> {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
