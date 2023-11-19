@@ -11,6 +11,8 @@ mod error;
 use error::TaskError;
 use tasks::Task;
 
+
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Cli {
@@ -49,14 +51,15 @@ fn add_task(description: String) -> Result<(), TaskError> {
     tasks.push(Task::new(description));
     save_tasks("tasks.json", &tasks)
 }
-fn list_tasks() -> Result<(), TaskError> {
+fn list_tasks() -> Result<String, TaskError> {
     let tasks = load_tasks("tasks.json")?;
+    let mut output = String::new();
 
     for (index, task) in tasks.iter().enumerate() {
-        println!("{}: {}", index + 1, task.description);
+        output.push_str(&format!("{}: {}\n", index + 1, task.description));
     }
 
-    Ok(())
+    Ok(output)
 }
 
 
@@ -80,4 +83,46 @@ fn save_tasks(filename: &str, tasks: &[Task]) -> Result<(), TaskError> {
     let json = serde_json::to_string(tasks)?;
     file.write_all(json.as_bytes())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_add_task() {
+        let description = "Test task".to_string();
+        println!("Error occurred: {}", description);
+
+        let result = add_task(description.clone());
+
+        if let Err(e) = &result {
+            println!("Error occurred: {}", e);
+        }
+
+        assert!(result.is_ok());
+
+        // Verify the task was added
+        let tasks = load_tasks("tasks.json").unwrap();
+        assert_eq!(tasks.last().unwrap().description, description);
+
+        // Cleanup: remove the test task from the file
+        let tasks = tasks.into_iter().filter(|task| task.description != description).collect::<Vec<_>>();
+        save_tasks("tasks.json", &tasks).unwrap();
+    }
+
+    #[test]
+    fn test_list_tasks() {
+        let description = "Test task".to_string();
+        add_task(description.clone()).unwrap();
+
+        let output = list_tasks().unwrap();
+        assert!(output.contains(&description));
+
+        // Cleanup: remove the test task from the file
+        let tasks = load_tasks("tasks.json").unwrap();
+        let tasks = tasks.into_iter().filter(|task| task.description != description).collect::<Vec<_>>();
+        save_tasks("tasks.json", &tasks).unwrap();
+    }
+
 }
