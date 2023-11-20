@@ -4,7 +4,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use serde_json::{self, Value};
 use serde::{Deserialize, Serialize};
-
+use serial_test::serial;
 mod tasks;
 mod error;
 
@@ -90,6 +90,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[serial]
     fn test_add_task() {
         let description = "Test task".to_string();
         println!("Error occurred: {}", description);
@@ -112,6 +113,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_list_tasks() {
         let description = "Test task".to_string();
         add_task(description.clone()).unwrap();
